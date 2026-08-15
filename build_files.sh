@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o errexit
 
-pip install -r requirements.txt
+pip install --break-system-packages -r requirements.txt
 
 python manage.py collectstatic --noinput
 python manage.py migrate --noinput
