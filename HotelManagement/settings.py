@@ -98,7 +98,7 @@ WSGI_APPLICATION = 'HotelManagement.wsgi.application'
 # Neon, or Supabase) in the Vercel project settings to use a real database;
 # locally, with no DATABASE_URL set, it falls back to the sqlite file as before.
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DATABASE_URL = 'postgresql://neondb_owner:npg_bEfM6ZKvcyx5@ep-young-lake-axb4v4b7.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require'
 
 if DATABASE_URL:
     import dj_database_url
