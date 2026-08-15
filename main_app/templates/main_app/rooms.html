@@ -1,0 +1,244 @@
+{% extends "main_app/base.html" %}
+{% load static humanize %}
+
+{% block title %}Rooms &amp; bookings — Mashabrum{% endblock %}
+{% block page_id %}rooms{% endblock %}
+{% block topbar_title %}Rooms &amp; bookings{% endblock %}
+
+{% block content %}
+  <section>
+    <div class="page-head">
+      <div>
+        <p class="eyebrow">Inventory</p>
+        <h1 class="page-title">Rooms</h1>
+      </div>
+      <a href="{% url 'rooms' %}?room_modal=add" class="btn btn-primary">+ Add room</a>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="dot dot-success"></span>Available</span>
+      <span class="legend-item"><span class="dot dot-warning"></span>Occupied</span>
+      <span class="legend-item"><span class="dot dot-danger"></span>Maintenance</span>
+    </div>
+    <div class="room-grid">
+      {% for room in rooms %}
+      <a href="{% url 'rooms' %}?room_modal=edit&id={{ room.pk }}" class="room-tile st-{{ room.status }}">
+        <div class="room-top">
+          <p class="room-number">{{ room.number }}</p>
+          <span class="status-dot"></span>
+        </div>
+        <p class="room-type">{{ room.type }}</p>
+        <p class="room-rate">Rs {{ room.rate|floatformat:0|intcomma }}<span>/night</span></p>
+        <p class="room-status">{{ room.get_status_display }}</p>
+      </a>
+      {% empty %}
+      <p class="empty-row">No rooms yet — add your first room.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <div class="page-head">
+      <h2 class="section-title" style="margin-bottom:0">Bookings</h2>
+      <a href="{% url 'rooms' %}?booking_modal=1" class="btn btn-primary">+ New booking</a>
+    </div>
+    <div class="table-wrap">
+      {% if bookings %}
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Guest</th>
+              <th>Room</th>
+              <th>Check-in</th>
+              <th>Check-out</th>
+              <th>Guests</th>
+              <th class="num">Total</th>
+              <th>Status</th>
+              <th>Payment</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for booking in bookings %}
+            <tr>
+              <td>{{ booking.guest_name }}{% if booking.phone %}<div class="cell-sub">{{ booking.phone }}</div>{% endif %}</td>
+              <td>{{ booking.room.number }}</td>
+              <td>{{ booking.check_in|date:"Y-m-d" }}</td>
+              <td>{{ booking.check_out|date:"Y-m-d" }}</td>
+              <td>{{ booking.guests }}</td>
+              <td class="num tabular">Rs {{ booking.total|floatformat:0|intcomma }}</td>
+              <td><span class="badge {% if booking.status == 'checked_out' %}badge-neutral{% else %}badge-success{% endif %}">{{ booking.get_status_display }}</span></td>
+              <td><span class="badge {% if booking.payment_status == 'paid' %}badge-success{% else %}badge-warning{% endif %}">{{ booking.get_payment_status_display }}</span></td>
+              <td class="num">
+                <div class="row-actions">
+                  {% if booking.status != 'checked_out' %}
+                  <a href="{% url 'rooms' %}?checkout={{ booking.pk }}" class="row-action">Check out</a>
+                  {% endif %}
+                  <form method="post" action="{% url 'booking_delete' booking.pk %}" onsubmit="return confirm('Remove this booking? This cannot be undone.')" style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit" class="row-action danger">Remove</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="empty-row">No bookings yet. Add a booking to get started.</p>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}
+
+{% block modal %}
+<div class="modal-overlay {% if not room_modal_open %}hidden{% endif %}">
+  <a href="{% url 'rooms' %}" class="modal-overlay-backdrop"></a>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>{% if room_form.instance.pk %}Edit room{% else %}Add room{% endif %}</h3>
+      <a href="{% url 'rooms' %}" class="modal-close">&times;</a>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'room_save' %}">
+        {% csrf_token %}
+        <input type="hidden" name="room_id" value="{{ room_form.instance.pk|default:'' }}">
+        <div class="form-group">
+          <label for="{{ room_form.number.id_for_label }}">Room number</label>
+          {{ room_form.number }}
+          {% if room_form.number.errors %}<p class="hint">{{ room_form.number.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ room_form.type.id_for_label }}">Room type</label>
+          {{ room_form.type }}
+          {% if room_form.type.errors %}<p class="hint">{{ room_form.type.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ room_form.rate.id_for_label }}">Rate per night (Rs)</label>
+          {{ room_form.rate }}
+          {% if room_form.rate.errors %}<p class="hint">{{ room_form.rate.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ room_form.status.id_for_label }}">Status</label>
+          {{ room_form.status }}
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">{% if room_form.instance.pk %}Save changes{% else %}Add room{% endif %}</button>
+          {% if room_form.instance.pk %}
+          <button type="submit" form="deleteRoomForm" class="btn-text btn-danger-text">Delete room</button>
+          {% endif %}
+        </div>
+      </form>
+      {% if room_form.instance.pk %}
+      <form id="deleteRoomForm" method="post" action="{% url 'room_delete' room_form.instance.pk %}" onsubmit="return confirm('Delete this room?')"></form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay {% if not booking_modal_open %}hidden{% endif %}">
+  <a href="{% url 'rooms' %}" class="modal-overlay-backdrop"></a>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>New booking</h3>
+      <a href="{% url 'rooms' %}" class="modal-close">&times;</a>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'booking_save' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="{{ booking_form.guest_name.id_for_label }}">Guest name</label>
+          {{ booking_form.guest_name }}
+          {% if booking_form.guest_name.errors %}<p class="hint">{{ booking_form.guest_name.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ booking_form.phone.id_for_label }}">Phone</label>
+          {{ booking_form.phone }}
+        </div>
+        <div class="form-group">
+          <label>Room</label>
+          <div class="checkbox-list">
+            {% for radio, room in room_choices %}
+            <label class="select-row">
+              {{ radio.tag }}
+              <span class="select-row-label">{{ room.number }} — {{ room.type }}</span>
+              <span class="select-row-meta">Rs {{ room.rate|floatformat:0|intcomma }}/night</span>
+            </label>
+            {% empty %}
+            <p class="select-list-empty">No rooms currently available.</p>
+            {% endfor %}
+          </div>
+          {% if booking_form.room.errors %}<p class="hint">{{ booking_form.room.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="{{ booking_form.check_in.id_for_label }}">Check-in</label>
+            {{ booking_form.check_in }}
+          </div>
+          <div class="form-group">
+            <label for="{{ booking_form.check_out.id_for_label }}">Check-out</label>
+            {{ booking_form.check_out }}
+          </div>
+        </div>
+        {% if booking_form.non_field_errors %}<p class="hint">{{ booking_form.non_field_errors|join:", " }}</p>{% endif %}
+        <div class="form-group">
+          <label for="{{ booking_form.guests.id_for_label }}">Number of guests</label>
+          {{ booking_form.guests }}
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" {% if not available_rooms %}disabled{% endif %}>Confirm booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if checkout_booking %}
+<div class="modal-overlay">
+  <a href="{% url 'rooms' %}" class="modal-overlay-backdrop"></a>
+  <div class="modal">
+    <div class="modal-head no-print">
+      <h3>Checkout bill</h3>
+      <a href="{% url 'rooms' %}" class="modal-close">&times;</a>
+    </div>
+    <div class="modal-body">
+      <div class="bill-print">
+        <div class="bill-header">
+          <p class="bill-brand">Mashabrum</p>
+          <p class="bill-sub">Checkout receipt</p>
+        </div>
+        <div class="breakdown-row"><span class="label">Guest</span><span>{{ checkout_booking.guest_name }}</span></div>
+        {% if checkout_booking.phone %}<div class="breakdown-row"><span class="label">Phone</span><span>{{ checkout_booking.phone }}</span></div>{% endif %}
+        <div class="breakdown-row"><span class="label">Room</span><span>{{ checkout_booking.room.number }} — {{ checkout_booking.room.type }}</span></div>
+        <div class="breakdown-row"><span class="label">Guests</span><span>{{ checkout_booking.guests }}</span></div>
+        <div class="breakdown-row"><span class="label">Check-in</span><span>{{ checkout_booking.check_in|date:"M j, Y" }}</span></div>
+        <div class="breakdown-row"><span class="label">Check-out</span><span>{{ checkout_booking.check_out|date:"M j, Y" }}</span></div>
+        <div class="breakdown-row total"><span class="label">Nights</span><span>{{ checkout_booking.nights }}</span></div>
+        <div class="breakdown-row"><span class="label">Rate / night</span><span class="tabular">Rs {{ checkout_booking.rate_per_night|floatformat:0|intcomma }}</span></div>
+        <div class="breakdown-row"><span class="label">Payment</span><span>{{ checkout_booking.get_payment_status_display }}</span></div>
+        <div class="bill-total">
+          <p class="stat-value tabular">Rs {{ checkout_booking.total|floatformat:0|intcomma }}</p>
+          <p class="stat-label">Total for this stay</p>
+        </div>
+      </div>
+
+      <form method="post" action="{% url 'booking_checkout' checkout_booking.pk %}">
+        {% csrf_token %}
+        <div class="form-group no-print" style="margin-top:18px">
+          <label>Payment status</label>
+          <div class="segmented">
+            <label class="segmented-btn"><input type="radio" name="payment_status" value="due" {% if checkout_booking.payment_status != 'paid' %}checked{% endif %}>Unpaid</label>
+            <label class="segmented-btn"><input type="radio" name="payment_status" value="paid" {% if checkout_booking.payment_status == 'paid' %}checked{% endif %}>Paid</label>
+          </div>
+        </div>
+        <div class="form-actions no-print">
+          <button type="button" class="btn" onclick="window.print()">Print</button>
+          <button type="submit" class="btn btn-primary">Confirm checkout</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

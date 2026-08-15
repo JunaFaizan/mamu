@@ -1,0 +1,118 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{% block title %}Mashabrum{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'main_app/style.css' %}">
+{% block extra_head %}{% endblock %}
+</head>
+<body data-page="{% block page_id %}{% endblock %}">
+
+{% block modal_toggle %}{% endblock %}
+
+<div class="mobile-topbar" id="mobileTopbar">
+  <div class="mobile-topbar-row">
+    <a href="{% url 'dashboard' %}" class="mobile-brand">
+      <span class="mobile-brand-mark">M</span>
+      <span class="name">Mashabrum</span>
+    </a>
+    <button class="mobile-menu-btn" onclick="toggleMobileNav()" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobileNav" id="mobileMenuBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+  </div>
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="{% url 'dashboard' %}" class="nav-link" data-nav="dashboard">
+      <span class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="3.5" width="7" height="7" rx="1"/><rect x="13.5" y="3.5" width="7" height="7" rx="1"/><rect x="3.5" y="13.5" width="7" height="7" rx="1"/><rect x="13.5" y="13.5" width="7" height="7" rx="1"/></svg></span>
+      Dashboard
+    </a>
+    <a href="{% url 'rooms' %}" class="nav-link" data-nav="rooms">
+      <span class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 19V7a1 1 0 011-1h5v13M3 19h18M9 6v13m3-9h7a1 1 0 011 1v8"/></svg></span>
+      Rooms &amp; bookings
+    </a>
+    <a href="{% url 'groups' %}" class="nav-link" data-nav="groups">
+      <span class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-1.5a3.5 3.5 0 00-2.7-3.4M9 20H2v-1.5A3.5 3.5 0 015 15M13.5 8.5a3 3 0 11-6 0 3 3 0 016 0zm6 1.5a2.5 2.5 0 10-2.4-3.2"/></svg></span>
+      Group bookings
+    </a>
+    <a href="{% url 'purchases' %}" class="nav-link" data-nav="purchases">
+      <span class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h2l.6 3M6.6 7l1.6 8h9.6L20 7H6.6zM9 19a1 1 0 100 2 1 1 0 000-2zm8 0a1 1 0 100 2 1 1 0 000-2z"/></svg></span>
+      Daily purchases
+    </a>
+    <a href="{% url 'reports' %}" class="nav-link" data-nav="reports">
+      <span class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4 20V10m6 10V4m6 16v-7"/></svg></span>
+      Profit &amp; expense
+    </a>
+    <form method="post" action="{% url 'logout' %}" style="border-top:1px solid var(--border-light); margin-top:6px; padding-top:6px;">
+      {% csrf_token %}
+      <button type="submit" class="nav-link" style="width:100%; text-align:left; background:none; border:none;">Log out</button>
+    </form>
+  </nav>
+</div>
+<div class="mobile-nav-backdrop" id="mobileNavBackdrop" onclick="toggleMobileNav()"></div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">M</div>
+      <div>
+        <p class="brand-name">Mashabrum</p>
+        <p class="brand-tag">Property ledger</p>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{% url 'dashboard' %}" class="nav-link" data-nav="dashboard">
+        <span class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="3.5" width="7" height="7" rx="1"/><rect x="13.5" y="3.5" width="7" height="7" rx="1"/><rect x="3.5" y="13.5" width="7" height="7" rx="1"/><rect x="13.5" y="13.5" width="7" height="7" rx="1"/></svg></span>
+        Dashboard
+      </a>
+      <a href="{% url 'rooms' %}" class="nav-link" data-nav="rooms">
+        <span class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 19V7a1 1 0 011-1h5v13M3 19h18M9 6v13m3-9h7a1 1 0 011 1v8"/></svg></span>
+        Rooms &amp; bookings
+      </a>
+      <a href="{% url 'groups' %}" class="nav-link" data-nav="groups">
+        <span class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-1.5a3.5 3.5 0 00-2.7-3.4M9 20H2v-1.5A3.5 3.5 0 015 15M13.5 8.5a3 3 0 11-6 0 3 3 0 016 0zm6 1.5a2.5 2.5 0 10-2.4-3.2"/></svg></span>
+        Group bookings
+      </a>
+      <a href="{% url 'purchases' %}" class="nav-link" data-nav="purchases">
+        <span class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h2l.6 3M6.6 7l1.6 8h9.6L20 7H6.6zM9 19a1 1 0 100 2 1 1 0 000-2zm8 0a1 1 0 100 2 1 1 0 000-2z"/></svg></span>
+        Daily purchases
+      </a>
+      <a href="{% url 'reports' %}" class="nav-link" data-nav="reports">
+        <span class="icon-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4 20V10m6 10V4m6 16v-7"/></svg></span>
+        Profit &amp; expense
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="link-quiet">Log out ({{ request.user.username }})</button>
+      </form>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <p class="topbar-title">{% block topbar_title %}{% endblock %}</p>
+        <p class="topbar-date">{% now "l, F j, Y" %}</p>
+      </div>
+      <div class="topbar-right">
+        <div class="avatar" title="{{ request.user.username }}">{{ request.user.username|slice:":2"|upper }}</div>
+      </div>
+    </div>
+    <div class="content">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+
+{% block modal %}{% endblock %}
+
+<div class="toast{% if not messages %} hidden{% endif %}" id="toast">{% for message in messages %}{{ message }}{% endfor %}</div>
+
+<script src="{% static 'main_app/nav.js' %}"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

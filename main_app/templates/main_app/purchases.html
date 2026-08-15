@@ -1,0 +1,131 @@
+{% extends "main_app/base.html" %}
+{% load static humanize %}
+
+{% block title %}Daily purchases — Mashabrum{% endblock %}
+{% block page_id %}purchases{% endblock %}
+{% block topbar_title %}Daily purchases{% endblock %}
+
+{% block modal_toggle %}
+<input type="checkbox" id="addPurchaseToggle" class="modal-check" hidden {% if reopen_modal %}checked{% endif %}>
+{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Kitchen &amp; supplies</p>
+      <h1 class="page-title">Daily purchases</h1>
+      <p class="page-sub">Log what you buy for the property. The price is logged the moment you save it — no date picker needed.</p>
+    </div>
+    <label for="addPurchaseToggle" class="btn btn-primary">+ Log purchase</label>
+  </div>
+
+  <div class="segmented" style="margin-bottom:14px">
+    {% for range in quick_ranges %}
+    <a href="{{ range.url }}" class="segmented-btn {% if range.active %}active{% endif %}">{{ range.label }}</a>
+    {% endfor %}
+  </div>
+
+  <form method="get" class="filter-bar">
+    <div class="filter-field">
+      <label for="pFilterFrom">From</label>
+      <input type="date" id="pFilterFrom" name="from" value="{{ date_from }}" onchange="this.form.submit()">
+    </div>
+    <div class="filter-field">
+      <label for="pFilterTo">To</label>
+      <input type="date" id="pFilterTo" name="to" value="{{ date_to }}" onchange="this.form.submit()">
+    </div>
+    {% if date_from or date_to %}
+      <a class="btn-text" href="{% url 'purchases' %}">Clear filters</a>
+    {% endif %}
+    <div class="filter-stats">
+      <div class="filter-stat">
+        <p class="stat-label">Today</p>
+        <p class="stat-value tabular">Rs {{ today_total|floatformat:0|intcomma }}</p>
+      </div>
+      <div class="filter-stat">
+        <p class="stat-label">Filtered total</p>
+        <p class="stat-value tabular">Rs {{ filtered_total|floatformat:0|intcomma }}</p>
+      </div>
+    </div>
+  </form>
+
+  <div class="table-wrap">
+    {% if purchases %}
+    <table class="data-table">
+      <colgroup>
+        <col class="col-item">
+        <col class="col-date">
+        <col class="col-price">
+        <col class="col-actions">
+      </colgroup>
+      <thead>
+        <tr>
+          <th><a href="{{ sort_url_item }}" class="th-sort {% if sort_key == 'item' %}active{% endif %}">Item{% if sort_key == 'item' %}<span class="sort-arrow">{% if sort == 'item' %}&uarr;{% else %}&darr;{% endif %}</span>{% endif %}</a></th>
+          <th><a href="{{ sort_url_date }}" class="th-sort {% if sort_key == 'date' %}active{% endif %}">Logged{% if sort_key == 'date' %}<span class="sort-arrow">{% if sort == 'date' %}&uarr;{% else %}&darr;{% endif %}</span>{% endif %}</a></th>
+          <th class="num"><a href="{{ sort_url_price }}" class="th-sort {% if sort_key == 'price' %}active{% endif %}">Price{% if sort_key == 'price' %}<span class="sort-arrow">{% if sort == 'price' %}&uarr;{% else %}&darr;{% endif %}</span>{% endif %}</a></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in purchases %}
+        <tr>
+          <td data-label="Item">
+            <div class="dt-item">
+              <span class="row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path stroke-linecap="round" d="M9 8h6M9 12h6"/></svg></span>
+              <div style="min-width:0">
+                <p class="dt-primary">{{ p.item }}</p>
+                {% if p.notes %}<p class="dt-sub">{{ p.notes }}</p>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td data-label="Logged" class="dt-sub">{{ p.created_at|date:"M j, Y" }} · {{ p.created_at|date:"g:i A" }}</td>
+          <td class="num tabular" data-label="Price"><span class="price-pill">Rs {{ p.price|floatformat:0|intcomma }}</span></td>
+          <td class="num" data-label="">
+            <form method="post" action="{% url 'purchase_delete' p.pk %}" onsubmit="return confirm('Remove this purchase?')">
+              {% csrf_token %}
+              <button type="submit" class="btn-text btn-danger-text">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty-row">No purchases logged for this filter.</p>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block modal %}
+<div class="modal-overlay hidden">
+  <label for="addPurchaseToggle" class="modal-overlay-backdrop"></label>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Log a purchase</h3>
+      <label for="addPurchaseToggle" class="modal-close">&times;</label>
+    </div>
+    <div class="modal-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="{{ form.item.id_for_label }}">Item</label>
+          {{ form.item }}
+          {% if form.item.errors %}<p class="hint">{{ form.item.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.price.id_for_label }}">Price (Rs)</label>
+          {{ form.price }}
+          {% if form.price.errors %}<p class="hint">{{ form.price.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.notes.id_for_label }}">Notes <span class="cell-sub">(optional)</span></label>
+          {{ form.notes }}
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Add purchase</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

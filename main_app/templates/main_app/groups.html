@@ -1,0 +1,193 @@
+{% extends "main_app/base.html" %}
+{% load static humanize %}
+
+{% block title %}Group bookings — Mashabrum{% endblock %}
+{% block page_id %}groups{% endblock %}
+{% block topbar_title %}Group bookings{% endblock %}
+
+{% block modal_toggle %}
+<input type="checkbox" id="addGroupToggle" class="modal-check" hidden {% if group_modal_open %}checked{% endif %}>
+{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Parties &amp; groups</p>
+      <h1 class="page-title">Group bookings</h1>
+      <p class="page-sub">Charge groups per person rather than per room — set the number of members and the rate per person, and the total is calculated for you across the whole stay.</p>
+    </div>
+    <label for="addGroupToggle" class="btn btn-primary">+ New group</label>
+  </div>
+
+  <div class="table-wrap">
+    {% if groups %}
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Group</th>
+            <th>Contact</th>
+            <th>Members</th>
+            <th class="num">Rate / person</th>
+            <th>Nights</th>
+            <th class="num">Total</th>
+            <th>Status</th>
+            <th>Payment</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for group in groups %}
+          <tr>
+            <td>{{ group.group_name }}<div class="cell-sub">{{ group.check_in|date:"Y-m-d" }} → {{ group.check_out|date:"Y-m-d" }}</div></td>
+            <td>{{ group.contact|default:"—" }}{% if group.phone %}<div class="cell-sub">{{ group.phone }}</div>{% endif %}</td>
+            <td>{{ group.members }}</td>
+            <td class="num tabular">Rs {{ group.rate_per_person|floatformat:0|intcomma }}</td>
+            <td>{{ group.nights }}</td>
+            <td class="num tabular">Rs {{ group.total|floatformat:0|intcomma }}</td>
+            <td><span class="badge {% if group.status == 'checked_out' %}badge-neutral{% else %}badge-success{% endif %}">{{ group.get_status_display }}</span></td>
+            <td><span class="badge {% if group.payment_status == 'paid' %}badge-success{% else %}badge-warning{% endif %}">{{ group.get_payment_status_display }}</span></td>
+            <td class="num">
+              <div class="row-actions">
+                {% if group.status != 'checked_out' %}
+                <a href="{% url 'groups' %}?checkout={{ group.pk }}" class="row-action">Check out</a>
+                {% endif %}
+                <form method="post" action="{% url 'group_delete' group.pk %}" onsubmit="return confirm('Remove this group booking? This cannot be undone.')" style="display:inline">
+                  {% csrf_token %}
+                  <button type="submit" class="row-action danger">Remove</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty-row">No group bookings yet.</p>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block modal %}
+<div class="modal-overlay hidden">
+  <label for="addGroupToggle" class="modal-overlay-backdrop"></label>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>New group booking</h3>
+      <label for="addGroupToggle" class="modal-close">&times;</label>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'group_save' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="{{ group_form.group_name.id_for_label }}">Group / party name</label>
+          {{ group_form.group_name }}
+          {% if group_form.group_name.errors %}<p class="hint">{{ group_form.group_name.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="{{ group_form.contact.id_for_label }}">Contact person</label>
+            {{ group_form.contact }}
+          </div>
+          <div class="form-group">
+            <label for="{{ group_form.phone.id_for_label }}">Phone</label>
+            {{ group_form.phone }}
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="{{ group_form.members.id_for_label }}">Number of members</label>
+            {{ group_form.members }}
+            {% if group_form.members.errors %}<p class="hint">{{ group_form.members.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div class="form-group">
+            <label for="{{ group_form.rate_per_person.id_for_label }}">Rate per person / night (Rs)</label>
+            {{ group_form.rate_per_person }}
+            {% if group_form.rate_per_person.errors %}<p class="hint">{{ group_form.rate_per_person.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="{{ group_form.check_in.id_for_label }}">Check-in</label>
+            {{ group_form.check_in }}
+          </div>
+          <div class="form-group">
+            <label for="{{ group_form.check_out.id_for_label }}">Check-out</label>
+            {{ group_form.check_out }}
+          </div>
+        </div>
+        {% if group_form.non_field_errors %}<p class="hint">{{ group_form.non_field_errors|join:", " }}</p>{% endif %}
+        <div class="form-group">
+          <label>Rooms used (optional)</label>
+          <div class="checkbox-list">
+            {% for checkbox, room in group_room_choices %}
+              <label class="select-row">
+                {{ checkbox.tag }}
+                <span class="select-row-label">{{ room.number }} — {{ room.type }}</span>
+                <span class="select-row-meta">Rs {{ room.rate|floatformat:0|intcomma }}/night</span>
+              </label>
+            {% empty %}
+              <p class="select-list-empty">No rooms currently available.</p>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Add group</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if checkout_group %}
+<div class="modal-overlay">
+  <a href="{% url 'groups' %}" class="modal-overlay-backdrop"></a>
+  <div class="modal">
+    <div class="modal-head no-print">
+      <h3>Checkout bill</h3>
+      <a href="{% url 'groups' %}" class="modal-close">&times;</a>
+    </div>
+    <div class="modal-body">
+      <div class="bill-print">
+        <div class="bill-header">
+          <p class="bill-brand">Mashabrum</p>
+          <p class="bill-sub">Checkout receipt</p>
+        </div>
+        <div class="breakdown-row"><span class="label">Group</span><span>{{ checkout_group.group_name }}</span></div>
+        {% if checkout_group.contact %}<div class="breakdown-row"><span class="label">Contact</span><span>{{ checkout_group.contact }}</span></div>{% endif %}
+        {% if checkout_group.phone %}<div class="breakdown-row"><span class="label">Phone</span><span>{{ checkout_group.phone }}</span></div>{% endif %}
+        <div class="breakdown-row"><span class="label">Members</span><span>{{ checkout_group.members }}</span></div>
+        {% if checkout_group.rooms.all %}
+        <div class="breakdown-row"><span class="label">Rooms</span><span>{% for room in checkout_group.rooms.all %}{{ room.number }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></div>
+        {% endif %}
+        <div class="breakdown-row"><span class="label">Check-in</span><span>{{ checkout_group.check_in|date:"M j, Y" }}</span></div>
+        <div class="breakdown-row"><span class="label">Check-out</span><span>{{ checkout_group.check_out|date:"M j, Y" }}</span></div>
+        <div class="breakdown-row total"><span class="label">Nights</span><span>{{ checkout_group.nights }}</span></div>
+        <div class="breakdown-row"><span class="label">Rate / person</span><span class="tabular">Rs {{ checkout_group.rate_per_person|floatformat:0|intcomma }}</span></div>
+        <div class="breakdown-row"><span class="label">Payment</span><span>{{ checkout_group.get_payment_status_display }}</span></div>
+        <div class="bill-total">
+          <p class="stat-value tabular">Rs {{ checkout_group.total|floatformat:0|intcomma }}</p>
+          <p class="stat-label">Total for this stay</p>
+        </div>
+      </div>
+
+      <form method="post" action="{% url 'group_checkout' checkout_group.pk %}">
+        {% csrf_token %}
+        <div class="form-group no-print" style="margin-top:18px">
+          <label>Payment status</label>
+          <div class="segmented">
+            <label class="segmented-btn"><input type="radio" name="payment_status" value="due" {% if checkout_group.payment_status != 'paid' %}checked{% endif %}>Unpaid</label>
+            <label class="segmented-btn"><input type="radio" name="payment_status" value="paid" {% if checkout_group.payment_status == 'paid' %}checked{% endif %}>Paid</label>
+          </div>
+        </div>
+        <div class="form-actions no-print">
+          <button type="button" class="btn" onclick="window.print()">Print</button>
+          <button type="submit" class="btn btn-primary">Confirm checkout</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

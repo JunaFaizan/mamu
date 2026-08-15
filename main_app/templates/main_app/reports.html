@@ -1,0 +1,87 @@
+{% extends "main_app/base.html" %}
+{% load static humanize %}
+
+{% block title %}Profit &amp; expense — Mashabrum{% endblock %}
+{% block page_id %}reports{% endblock %}
+{% block topbar_title %}Profit &amp; expense{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">The ledger</p>
+      <h1 class="page-title">Profit &amp; expense summary</h1>
+    </div>
+  </div>
+
+  <div class="segmented" style="margin-bottom:14px">
+    {% for range in quick_ranges %}
+    <a href="{{ range.url }}" class="segmented-btn {% if range.active %}active{% endif %}">{{ range.label }}</a>
+    {% endfor %}
+  </div>
+
+  <form method="get" class="filter-bar">
+    <div class="filter-field">
+      <label for="rFilterFrom">From</label>
+      <input type="date" id="rFilterFrom" name="from" value="{{ date_from }}" onchange="this.form.submit()">
+    </div>
+    <div class="filter-field">
+      <label for="rFilterTo">To</label>
+      <input type="date" id="rFilterTo" name="to" value="{{ date_to }}" onchange="this.form.submit()">
+    </div>
+    {% if date_from or date_to %}
+      <a class="btn-text" href="{% url 'reports' %}">All time</a>
+    {% endif %}
+  </form>
+
+  <div class="stat-grid">
+    <div class="stat-card"><p class="stat-label">Total revenue</p><p class="stat-value tabular">Rs {{ total_revenue|floatformat:0|intcomma }}</p></div>
+    <div class="stat-card"><p class="stat-label">Total expense</p><p class="stat-value neg tabular">Rs {{ total_expense|floatformat:0|intcomma }}</p></div>
+    <div class="stat-card"><p class="stat-label">Net profit</p><p class="stat-value {% if profit >= 0 %}pos{% else %}neg{% endif %} tabular">Rs {{ profit|floatformat:0|intcomma }}</p></div>
+    <div class="stat-card"><p class="stat-label">Margin</p><p class="stat-value tabular">{{ margin }}%</p></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2 class="section-title">Revenue vs. expense</h2>
+    <div class="bar-row">
+      <div class="bar-label"><span>Revenue</span><span class="tabular">Rs {{ total_revenue|floatformat:0|intcomma }}</span></div>
+      <div class="bar-track"><div class="bar-fill success" style="width:{{ revenue_bar_pct }}%"></div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label"><span>Expense</span><span class="tabular">Rs {{ total_expense|floatformat:0|intcomma }}</span></div>
+      <div class="bar-track"><div class="bar-fill danger" style="width:{{ expense_bar_pct }}%"></div></div>
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-top:16px">
+    <div class="card">
+      <h2 class="section-title">Revenue breakdown</h2>
+      <div class="breakdown-row"><span class="label">Room bookings</span><span class="tabular">Rs {{ room_revenue|floatformat:0|intcomma }}</span></div>
+      <div class="breakdown-row"><span class="label">Group bookings</span><span class="tabular">Rs {{ group_revenue|floatformat:0|intcomma }}</span></div>
+      <div class="breakdown-row total"><span class="label">Total</span><span class="tabular">Rs {{ total_revenue|floatformat:0|intcomma }}</span></div>
+
+      <h2 class="section-title" style="margin-top:22px">Paid vs. due</h2>
+      {% if total_revenue %}
+      <div class="bar-row">
+        <div class="bar-label"><span>Paid</span><span class="tabular">Rs {{ paid_revenue|floatformat:0|intcomma }}</span></div>
+        <div class="bar-track"><div class="bar-fill success" style="width:{{ paid_pct }}%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label"><span>Due</span><span class="tabular">Rs {{ due_revenue|floatformat:0|intcomma }}</span></div>
+        <div class="bar-track"><div class="bar-fill warning" style="width:{{ due_pct }}%"></div></div>
+      </div>
+      {% else %}
+      <p class="empty-row">No revenue in this range.</p>
+      {% endif %}
+    </div>
+    <div class="card">
+      <h2 class="section-title">Purchases</h2>
+      <p class="stat-value tabular">Rs {{ purchase_total|floatformat:0|intcomma }}</p>
+      <p class="stat-label">Total spent{% if date_from or date_to %} in this range{% endif %}</p>
+      <div class="breakdown-row total" style="margin-top:16px">
+        <span class="label">Purchases logged</span>
+        <span class="tabular">{{ purchase_count }}</span>
+      </div>
+      <a href="{{ purchases_url }}" class="btn-text" style="display:inline-block; margin-top:14px;">View all purchases →</a>
+    </div>
+  </div>
+{% endblock %}

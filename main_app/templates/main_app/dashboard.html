@@ -1,0 +1,93 @@
+{% extends "main_app/base.html" %}
+{% load static humanize %}
+
+{% block title %}Dashboard — Mashabrum{% endblock %}
+{% block page_id %}dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Overview</p>
+      <h1 class="page-title">Today at a glance</h1>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon i-indigo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 19V7a1 1 0 011-1h5v13M3 19h18M9 6v13m3-9h7a1 1 0 011 1v8"/></svg></div>
+        <span class="trend-chip trend-flat">{{ total_rooms }} total</span>
+      </div>
+      <p class="stat-value">{{ occ_rate }}%</p>
+      <p class="stat-label">Occupancy today</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon i-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 21V9l8-6 8 6v12M9 21v-6h6v6"/></svg></div>
+        <span class="trend-chip trend-flat">{{ occ_rate }}% of total</span>
+      </div>
+      <p class="stat-value">{{ occupied }}</p>
+      <p class="stat-label">Occupied rooms</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon i-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 6L9 17l-5-5"/></svg></div>
+        <span class="trend-chip trend-flat">ready</span>
+      </div>
+      <p class="stat-value">{{ available }}</p>
+      <p class="stat-label">Available rooms</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-icon i-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h2l.6 3M6.6 7l1.6 8h9.6L20 7H6.6zM9 19a1 1 0 100 2 1 1 0 000-2zm8 0a1 1 0 100 2 1 1 0 000-2z"/></svg></div>
+        {% if purchase_change is None %}
+        <span class="trend-chip trend-flat">no data yesterday</span>
+        {% elif purchase_change > 0 %}
+        <span class="trend-chip trend-up">+{{ purchase_change }}% vs yday</span>
+        {% elif purchase_change < 0 %}
+        <span class="trend-chip trend-down">{{ purchase_change }}% vs yday</span>
+        {% else %}
+        <span class="trend-chip trend-flat">flat vs yday</span>
+        {% endif %}
+      </div>
+      <p class="stat-value tabular">Rs {{ today_total|floatformat:0|intcomma }}</p>
+      <p class="stat-label">Today's purchases</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2 class="section-title">Purchases this week</h2>
+    <div class="chart-bars">
+      {% for day in week_days %}
+      <div class="chart-col">
+        <span class="chart-bar-value">Rs {{ day.total|floatformat:0|intcomma }}</span>
+        <div class="chart-bar {% if day.is_today %}today{% endif %}" style="height:{{ day.pct }}%"></div>
+        <span class="chart-col-label">{{ day.label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-top:16px">
+    <div class="card">
+      <h2 class="section-title">Room status</h2>
+      {% for room in rooms %}
+      <div class="breakdown-row">
+        <span class="label">{{ room.number }} — {{ room.type }}</span>
+        <span class="badge {% if room.status == 'available' %}badge-success{% elif room.status == 'occupied' %}badge-warning{% else %}badge-danger{% endif %}">{{ room.get_status_display }}</span>
+      </div>
+      {% empty %}
+      <p class="empty-row">No rooms added yet.</p>
+      {% endfor %}
+    </div>
+    <div class="card">
+      <h2 class="section-title">Recent activity</h2>
+      {% for item in activity %}
+      <div class="breakdown-row"><span class="label">{{ item.text }}</span><span class="cell-sub">{{ item.date|date:"Y-m-d" }}</span></div>
+      {% empty %}
+      <p class="empty-row">Nothing yet — activity will show up here.</p>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}
