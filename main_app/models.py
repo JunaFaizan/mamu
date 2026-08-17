@@ -19,6 +19,43 @@ class Purchase(models.Model):
         return self.item
 
 
+class Salary(models.Model):
+    staff_name = models.CharField(max_length=200)
+    month = models.CharField(max_length=20)
+    amount = models.DecimalField(max_digits=10, decimal_places=0)
+    notes = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.staff_name} — {self.month}'
+
+
+MAINTENANCE_TYPE_CHOICES = [
+    ('room_maintenance', 'Room maintenance'),
+    ('garden_cleaning', 'Garden cleaning'),
+    ('repairing', 'Repairing'),
+    ('other', 'Other'),
+]
+
+
+class Maintenance(models.Model):
+    type = models.CharField(max_length=30, choices=MAINTENANCE_TYPE_CHOICES, default='room_maintenance')
+    title = models.CharField(max_length=200, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=0)
+    notes = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name_plural = 'Maintenance'
+
+    def __str__(self):
+        return self.title or self.get_type_display()
+
+
 class Room(models.Model):
     STATUS_CHOICES = [
         ('available', 'Available'),

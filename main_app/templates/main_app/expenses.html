@@ -1,0 +1,205 @@
+{% extends "main_app/base.html" %}
+{% load static humanize %}
+
+{% block title %}Salary &amp; maintenance — Mashabrum{% endblock %}
+{% block page_id %}expenses{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Staff &amp; upkeep</p>
+      <h1 class="page-title">Salary &amp; maintenance</h1>
+      <p class="page-sub">Track staff salaries and property upkeep costs separately from daily supply purchases.</p>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <p class="stat-label">Salary{% if date_from or date_to %} (filtered){% endif %}</p>
+      <p class="stat-value tabular">Rs {{ salary_total|floatformat:0|intcomma }}</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">Maintenance{% if date_from or date_to %} (filtered){% endif %}</p>
+      <p class="stat-value tabular">Rs {{ maintenance_total|floatformat:0|intcomma }}</p>
+    </div>
+    <div class="stat-card">
+      <p class="stat-label">Combined total</p>
+      <p class="stat-value tabular">Rs {{ combined_total|floatformat:0|intcomma }}</p>
+    </div>
+  </div>
+
+  <div class="segmented" style="margin-bottom:14px">
+    {% for range in quick_ranges %}
+    <a href="{{ range.url }}" class="segmented-btn {% if range.active %}active{% endif %}">{{ range.label }}</a>
+    {% endfor %}
+  </div>
+
+  <form method="get" class="filter-bar">
+    <div class="filter-field">
+      <label for="eFilterFrom">From</label>
+      <input type="date" id="eFilterFrom" name="from" value="{{ date_from }}" onchange="this.form.submit()">
+    </div>
+    <div class="filter-field">
+      <label for="eFilterTo">To</label>
+      <input type="date" id="eFilterTo" name="to" value="{{ date_to }}" onchange="this.form.submit()">
+    </div>
+    {% if date_from or date_to %}
+      <a class="btn-text" href="{% url 'expenses' %}">Clear filters</a>
+    {% endif %}
+  </form>
+
+  <section>
+    <div class="page-head">
+      <h2 class="section-title" style="margin-bottom:0">Staff salary</h2>
+      <a href="{% url 'expenses' %}?salary_modal=1" class="btn btn-primary">+ Log salary</a>
+    </div>
+    <div class="table-wrap">
+      {% if salaries %}
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Staff name</th>
+              <th>Month</th>
+              <th class="num">Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in salaries %}
+            <tr>
+              <td>{{ s.staff_name }}{% if s.notes %}<div class="cell-sub">{{ s.notes }}</div>{% endif %}</td>
+              <td>{{ s.month }}</td>
+              <td class="num tabular">Rs {{ s.amount|floatformat:0|intcomma }}</td>
+              <td class="num">
+                <form method="post" action="{% url 'salary_delete' s.pk %}" onsubmit="return confirm('Remove this salary entry?')">
+                  {% csrf_token %}
+                  <button type="submit" class="row-action danger">Remove</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="empty-row">No salary entries logged for this filter.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section style="margin-top:16px">
+    <div class="page-head">
+      <h2 class="section-title" style="margin-bottom:0">Maintenance</h2>
+      <a href="{% url 'expenses' %}?maintenance_modal=1" class="btn btn-primary">+ Log maintenance</a>
+    </div>
+    <div class="table-wrap">
+      {% if maintenances %}
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Description</th>
+              <th class="num">Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in maintenances %}
+            <tr>
+              <td><span class="badge badge-warning">{{ m.get_type_display }}</span></td>
+              <td>{{ m.title|default:"—" }}{% if m.notes %}<div class="cell-sub">{{ m.notes }}</div>{% endif %}</td>
+              <td class="num tabular">Rs {{ m.amount|floatformat:0|intcomma }}</td>
+              <td class="num">
+                <form method="post" action="{% url 'maintenance_delete' m.pk %}" onsubmit="return confirm('Remove this maintenance entry?')">
+                  {% csrf_token %}
+                  <button type="submit" class="row-action danger">Remove</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="empty-row">No maintenance entries logged for this filter.</p>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}
+
+{% block modal %}
+<div class="modal-overlay {% if not salary_modal_open %}hidden{% endif %}">
+  <a href="{% url 'expenses' %}" class="modal-overlay-backdrop"></a>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Log staff salary</h3>
+      <a href="{% url 'expenses' %}" class="modal-close">&times;</a>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'salary_save' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="{{ salary_form.staff_name.id_for_label }}">Staff name</label>
+          {{ salary_form.staff_name }}
+          {% if salary_form.staff_name.errors %}<p class="hint">{{ salary_form.staff_name.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ salary_form.month.id_for_label }}">Month</label>
+          {{ salary_form.month }}
+          {% if salary_form.month.errors %}<p class="hint">{{ salary_form.month.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ salary_form.amount.id_for_label }}">Amount (Rs)</label>
+          {{ salary_form.amount }}
+          {% if salary_form.amount.errors %}<p class="hint">{{ salary_form.amount.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ salary_form.notes.id_for_label }}">Notes <span class="cell-sub">(optional)</span></label>
+          {{ salary_form.notes }}
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Add salary entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay {% if not maintenance_modal_open %}hidden{% endif %}">
+  <a href="{% url 'expenses' %}" class="modal-overlay-backdrop"></a>
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Log maintenance</h3>
+      <a href="{% url 'expenses' %}" class="modal-close">&times;</a>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'maintenance_save' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="{{ maintenance_form.type.id_for_label }}">Type</label>
+          {{ maintenance_form.type }}
+          {% if maintenance_form.type.errors %}<p class="hint">{{ maintenance_form.type.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ maintenance_form.title.id_for_label }}">Description <span class="cell-sub">(optional)</span></label>
+          {{ maintenance_form.title }}
+        </div>
+        <div class="form-group">
+          <label for="{{ maintenance_form.amount.id_for_label }}">Amount (Rs)</label>
+          {{ maintenance_form.amount }}
+          {% if maintenance_form.amount.errors %}<p class="hint">{{ maintenance_form.amount.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ maintenance_form.notes.id_for_label }}">Notes <span class="cell-sub">(optional)</span></label>
+          {{ maintenance_form.notes }}
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Add maintenance entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

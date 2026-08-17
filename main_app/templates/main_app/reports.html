@@ -3,7 +3,6 @@
 
 {% block title %}Profit &amp; expense — Mashabrum{% endblock %}
 {% block page_id %}reports{% endblock %}
-{% block topbar_title %}Profit &amp; expense{% endblock %}
 
 {% block content %}
   <div class="page-head">
@@ -74,14 +73,13 @@
       {% endif %}
     </div>
     <div class="card">
-      <h2 class="section-title">Purchases</h2>
-      <p class="stat-value tabular">Rs {{ purchase_total|floatformat:0|intcomma }}</p>
-      <p class="stat-label">Total spent{% if date_from or date_to %} in this range{% endif %}</p>
-      <div class="breakdown-row total" style="margin-top:16px">
-        <span class="label">Purchases logged</span>
-        <span class="tabular">{{ purchase_count }}</span>
-      </div>
+      <h2 class="section-title">Expense breakdown</h2>
+      <div class="breakdown-row"><span class="label">Daily purchases</span><span class="tabular">Rs {{ purchase_total|floatformat:0|intcomma }}</span></div>
+      <div class="breakdown-row"><span class="label">Salary</span><span class="tabular">Rs {{ salary_total|floatformat:0|intcomma }}</span></div>
+      <div class="breakdown-row"><span class="label">Maintenance</span><span class="tabular">Rs {{ maintenance_total|floatformat:0|intcomma }}</span></div>
+      <div class="breakdown-row total"><span class="label">Total</span><span class="tabular">Rs {{ total_expense|floatformat:0|intcomma }}</span></div>
       <a href="{{ purchases_url }}" class="btn-text" style="display:inline-block; margin-top:14px;">View all purchases →</a>
+      <a href="{{ expenses_url }}" class="btn-text" style="display:inline-block; margin-top:6px;">View salary &amp; maintenance →</a>
     </div>
   </div>
 {% endblock %}

@@ -18,6 +18,12 @@ urlpatterns = [
     path('groups/<int:pk>/checkout/', views.group_checkout, name='group_checkout'),
     path('groups/<int:pk>/delete/', views.group_delete, name='group_delete'),
     path('purchases/', views.purchases, name='purchases'),
+    path('purchases/save/', views.purchase_save, name='purchase_save'),
     path('purchases/<int:pk>/delete/', views.purchase_delete, name='purchase_delete'),
+    path('expenses/', views.expenses, name='expenses'),
+    path('expenses/salary/save/', views.salary_save, name='salary_save'),
+    path('expenses/salary/<int:pk>/delete/', views.salary_delete, name='salary_delete'),
+    path('expenses/maintenance/save/', views.maintenance_save, name='maintenance_save'),
+    path('expenses/maintenance/<int:pk>/delete/', views.maintenance_delete, name='maintenance_delete'),
     path('reports/', views.reports, name='reports'),
 ]

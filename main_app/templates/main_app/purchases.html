@@ -3,11 +3,6 @@
 
 {% block title %}Daily purchases — Mashabrum{% endblock %}
 {% block page_id %}purchases{% endblock %}
-{% block topbar_title %}Daily purchases{% endblock %}
-
-{% block modal_toggle %}
-<input type="checkbox" id="addPurchaseToggle" class="modal-check" hidden {% if reopen_modal %}checked{% endif %}>
-{% endblock %}
 
 {% block content %}
   <div class="page-head">
@@ -16,7 +11,7 @@
       <h1 class="page-title">Daily purchases</h1>
       <p class="page-sub">Log what you buy for the property. The price is logged the moment you save it — no date picker needed.</p>
     </div>
-    <label for="addPurchaseToggle" class="btn btn-primary">+ Log purchase</label>
+    <a href="{% url 'purchases' %}?purchase_modal=add" class="btn btn-primary">+ Log purchase</a>
   </div>
 
   <div class="segmented" style="margin-bottom:14px">
@@ -81,10 +76,13 @@
           <td data-label="Logged" class="dt-sub">{{ p.created_at|date:"M j, Y" }} · {{ p.created_at|date:"g:i A" }}</td>
           <td class="num tabular" data-label="Price"><span class="price-pill">Rs {{ p.price|floatformat:0|intcomma }}</span></td>
           <td class="num" data-label="">
-            <form method="post" action="{% url 'purchase_delete' p.pk %}" onsubmit="return confirm('Remove this purchase?')">
-              {% csrf_token %}
-              <button type="submit" class="btn-text btn-danger-text">Remove</button>
-            </form>
+            <div class="row-actions">
+              <a href="{% url 'purchases' %}?purchase_modal=edit&id={{ p.pk }}" class="row-action">Edit</a>
+              <form method="post" action="{% url 'purchase_delete' p.pk %}" onsubmit="return confirm('Remove this purchase?')" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="row-action danger">Remove</button>
+              </form>
+            </div>
           </td>
         </tr>
         {% endfor %}
@@ -97,16 +95,17 @@
 {% endblock %}
 
 {% block modal %}
-<div class="modal-overlay hidden">
-  <label for="addPurchaseToggle" class="modal-overlay-backdrop"></label>
+<div class="modal-overlay {% if not modal_open %}hidden{% endif %}">
+  <a href="{% url 'purchases' %}" class="modal-overlay-backdrop"></a>
   <div class="modal">
     <div class="modal-head">
-      <h3>Log a purchase</h3>
-      <label for="addPurchaseToggle" class="modal-close">&times;</label>
+      <h3>{% if form.instance.pk %}Edit purchase{% else %}Log a purchase{% endif %}</h3>
+      <a href="{% url 'purchases' %}" class="modal-close">&times;</a>
     </div>
     <div class="modal-body">
-      <form method="post">
+      <form method="post" action="{% url 'purchase_save' %}">
         {% csrf_token %}
+        <input type="hidden" name="purchase_id" value="{{ form.instance.pk|default:'' }}">
         <div class="form-group">
           <label for="{{ form.item.id_for_label }}">Item</label>
           {{ form.item }}
@@ -122,9 +121,15 @@
           {{ form.notes }}
         </div>
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Add purchase</button>
+          <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Save changes{% else %}Add purchase{% endif %}</button>
+          {% if form.instance.pk %}
+          <button type="submit" form="deletePurchaseForm" class="btn-text btn-danger-text">Delete purchase</button>
+          {% endif %}
         </div>
       </form>
+      {% if form.instance.pk %}
+      <form id="deletePurchaseForm" method="post" action="{% url 'purchase_delete' form.instance.pk %}" onsubmit="return confirm('Delete this purchase?')"></form>
+      {% endif %}
     </div>
   </div>
 </div>

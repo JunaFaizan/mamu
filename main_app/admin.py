@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Booking, Group, Purchase, Room
+from .models import Booking, Group, Maintenance, Purchase, Room, Salary
 
 
 @admin.register(Purchase)
@@ -8,6 +8,20 @@ class PurchaseAdmin(admin.ModelAdmin):
     list_display = ('item', 'price', 'created_at')
     list_filter = ('created_at',)
     search_fields = ('item', 'notes')
+
+
+@admin.register(Salary)
+class SalaryAdmin(admin.ModelAdmin):
+    list_display = ('staff_name', 'month', 'amount', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('staff_name', 'month', 'notes')
+
+
+@admin.register(Maintenance)
+class MaintenanceAdmin(admin.ModelAdmin):
+    list_display = ('title', 'type', 'amount', 'created_at')
+    list_filter = ('type', 'created_at')
+    search_fields = ('title', 'notes')
 
 
 @admin.register(Room)

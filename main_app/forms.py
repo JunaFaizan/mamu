@@ -1,6 +1,49 @@
 from django import forms
 
-from .models import Booking, Group, Purchase, Room
+from .models import Booking, Group, Maintenance, Purchase, Room, Salary
+
+
+class SalaryForm(forms.ModelForm):
+    class Meta:
+        model = Salary
+        fields = ['staff_name', 'month', 'amount', 'notes']
+        widgets = {
+            'staff_name': forms.TextInput(attrs={
+                'placeholder': 'e.g. Ali (housekeeping)',
+                'autofocus': True,
+            }),
+            'month': forms.TextInput(attrs={
+                'placeholder': 'e.g. August 2026',
+            }),
+            'amount': forms.NumberInput(attrs={
+                'placeholder': 'e.g. 25000',
+                'min': '0',
+                'step': '1',
+            }),
+            'notes': forms.TextInput(attrs={
+                'placeholder': 'Optional',
+            }),
+        }
+
+
+class MaintenanceForm(forms.ModelForm):
+    class Meta:
+        model = Maintenance
+        fields = ['type', 'title', 'amount', 'notes']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'placeholder': 'e.g. AC repair, room 204',
+                'autofocus': True,
+            }),
+            'amount': forms.NumberInput(attrs={
+                'placeholder': 'e.g. 5000',
+                'min': '0',
+                'step': '1',
+            }),
+            'notes': forms.TextInput(attrs={
+                'placeholder': 'Optional',
+            }),
+        }
 
 
 class PurchaseForm(forms.ModelForm):

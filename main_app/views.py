@@ -8,8 +8,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from .forms import BookingForm, GroupForm, PurchaseForm, RoomForm
-from .models import Booking, Group, Purchase, Room
+from .forms import BookingForm, GroupForm, MaintenanceForm, PurchaseForm, RoomForm, SalaryForm
+from .models import Booking, Group, Maintenance, Purchase, Room, Salary
 
 
 def _quick_range_options(url_name, date_from, date_to):
@@ -296,15 +296,21 @@ def reports(request):
     bookings = Booking.objects.select_related('room').all()
     groups_qs = Group.objects.all()
     purchases = Purchase.objects.all()
+    salaries = Salary.objects.all()
+    maintenances = Maintenance.objects.all()
 
     if date_from:
         bookings = bookings.filter(check_in__gte=date_from)
         groups_qs = groups_qs.filter(check_in__gte=date_from)
         purchases = purchases.filter(created_at__date__gte=date_from)
+        salaries = salaries.filter(created_at__date__gte=date_from)
+        maintenances = maintenances.filter(created_at__date__gte=date_from)
     if date_to:
         bookings = bookings.filter(check_in__lte=date_to)
         groups_qs = groups_qs.filter(check_in__lte=date_to)
         purchases = purchases.filter(created_at__date__lte=date_to)
+        salaries = salaries.filter(created_at__date__lte=date_to)
+        maintenances = maintenances.filter(created_at__date__lte=date_to)
 
     room_revenue = sum((b.total for b in bookings), 0)
     group_revenue = sum((g.total for g in groups_qs), 0)
@@ -316,17 +322,23 @@ def reports(request):
     )
     due_revenue = total_revenue - paid_revenue
 
-    total_expense = purchases.aggregate(total=Sum('price'))['total'] or 0
+    purchase_total = purchases.aggregate(total=Sum('price'))['total'] or 0
+    salary_total = salaries.aggregate(total=Sum('amount'))['total'] or 0
+    maintenance_total = maintenances.aggregate(total=Sum('amount'))['total'] or 0
+    total_expense = purchase_total + salary_total + maintenance_total
     purchase_count = purchases.count()
 
     profit = total_revenue - total_expense
     margin = round((profit / total_revenue) * 100) if total_revenue > 0 else 0
     max_val = max(total_revenue, total_expense, 1)
 
-    purchases_url = reverse('purchases')
     filter_params = {k: v for k, v in {'from': date_from, 'to': date_to}.items() if v}
+
+    purchases_url = reverse('purchases')
+    expenses_url = reverse('expenses')
     if filter_params:
         purchases_url += '?' + urlencode(filter_params)
+        expenses_url += '?' + urlencode(filter_params)
 
     context = {
         'date_from': date_from,
@@ -344,9 +356,12 @@ def reports(request):
         'expense_bar_pct': round((total_expense / max_val) * 100),
         'paid_pct': round((paid_revenue / total_revenue) * 100) if total_revenue else 0,
         'due_pct': round((due_revenue / total_revenue) * 100) if total_revenue else 0,
-        'purchase_total': total_expense,
+        'purchase_total': purchase_total,
         'purchase_count': purchase_count,
         'purchases_url': purchases_url,
+        'salary_total': salary_total,
+        'maintenance_total': maintenance_total,
+        'expenses_url': expenses_url,
     }
     return render(request, 'main_app/reports.html', context)
 
@@ -358,19 +373,18 @@ PURCHASE_SORT_FIELDS = {
 }
 
 
-@login_required
-def purchases(request):
-    reopen_modal = False
-
-    if request.method == 'POST':
-        form = PurchaseForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Purchase logged.')
-            return redirect('purchases')
-        reopen_modal = True
-    else:
-        form = PurchaseForm()
+def _render_purchases(request, form=None, modal_open=False):
+    if form is None:
+        modal_param = request.GET.get('purchase_modal')
+        if modal_param == 'edit' and request.GET.get('id'):
+            purchase = get_object_or_404(Purchase, pk=request.GET['id'])
+            form = PurchaseForm(instance=purchase)
+            modal_open = True
+        elif modal_param == 'add':
+            form = PurchaseForm()
+            modal_open = True
+        else:
+            form = PurchaseForm()
 
     date_from = request.GET.get('from', '')
     date_to = request.GET.get('to', '')
@@ -405,7 +419,7 @@ def purchases(request):
         'quick_ranges': _quick_range_options('purchases', date_from, date_to),
         'filtered_total': filtered_total,
         'today_total': today_total,
-        'reopen_modal': reopen_modal,
+        'modal_open': modal_open,
         'sort': sort,
         'sort_key': sort_key,
         'sort_url_item': sort_url('item'),
@@ -416,9 +430,127 @@ def purchases(request):
 
 
 @login_required
+def purchases(request):
+    return _render_purchases(request)
+
+
+@login_required
+def purchase_save(request):
+    if request.method != 'POST':
+        return redirect('purchases')
+
+    purchase_id = request.POST.get('purchase_id')
+    purchase = get_object_or_404(Purchase, pk=purchase_id) if purchase_id else None
+    form = PurchaseForm(request.POST, instance=purchase)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Purchase updated.' if purchase else 'Purchase logged.')
+        return redirect('purchases')
+
+    messages.error(request, 'Could not save the purchase — please fix the errors below.')
+    return _render_purchases(request, form=form, modal_open=True)
+
+
+@login_required
 def purchase_delete(request, pk):
     purchase = get_object_or_404(Purchase, pk=pk)
     if request.method == 'POST':
         purchase.delete()
         messages.success(request, 'Purchase removed.')
     return redirect('purchases')
+
+
+def _render_expenses(request, salary_form=None, maintenance_form=None,
+                      salary_modal_open=False, maintenance_modal_open=False):
+    if salary_form is None:
+        salary_form = SalaryForm()
+        if request.GET.get('salary_modal') == '1':
+            salary_modal_open = True
+    if maintenance_form is None:
+        maintenance_form = MaintenanceForm()
+        if request.GET.get('maintenance_modal') == '1':
+            maintenance_modal_open = True
+
+    date_from = request.GET.get('from', '')
+    date_to = request.GET.get('to', '')
+
+    salaries = Salary.objects.all()
+    maintenances = Maintenance.objects.all()
+    if date_from:
+        salaries = salaries.filter(created_at__date__gte=date_from)
+        maintenances = maintenances.filter(created_at__date__gte=date_from)
+    if date_to:
+        salaries = salaries.filter(created_at__date__lte=date_to)
+        maintenances = maintenances.filter(created_at__date__lte=date_to)
+
+    salary_total = salaries.aggregate(total=Sum('amount'))['total'] or 0
+    maintenance_total = maintenances.aggregate(total=Sum('amount'))['total'] or 0
+
+    context = {
+        'salary_form': salary_form,
+        'maintenance_form': maintenance_form,
+        'salaries': salaries,
+        'maintenances': maintenances,
+        'date_from': date_from,
+        'date_to': date_to,
+        'quick_ranges': _quick_range_options('expenses', date_from, date_to),
+        'salary_total': salary_total,
+        'maintenance_total': maintenance_total,
+        'combined_total': salary_total + maintenance_total,
+        'salary_modal_open': salary_modal_open,
+        'maintenance_modal_open': maintenance_modal_open,
+    }
+    return render(request, 'main_app/expenses.html', context)
+
+
+@login_required
+def expenses(request):
+    return _render_expenses(request)
+
+
+@login_required
+def salary_save(request):
+    if request.method != 'POST':
+        return redirect('expenses')
+
+    form = SalaryForm(request.POST)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Salary logged.')
+        return redirect('expenses')
+
+    messages.error(request, 'Could not save the salary entry — please fix the errors below.')
+    return _render_expenses(request, salary_form=form, salary_modal_open=True)
+
+
+@login_required
+def salary_delete(request, pk):
+    salary = get_object_or_404(Salary, pk=pk)
+    if request.method == 'POST':
+        salary.delete()
+        messages.success(request, 'Salary entry removed.')
+    return redirect('expenses')
+
+
+@login_required
+def maintenance_save(request):
+    if request.method != 'POST':
+        return redirect('expenses')
+
+    form = MaintenanceForm(request.POST)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Maintenance logged.')
+        return redirect('expenses')
+
+    messages.error(request, 'Could not save the maintenance entry — please fix the errors below.')
+    return _render_expenses(request, maintenance_form=form, maintenance_modal_open=True)
+
+
+@login_required
+def maintenance_delete(request, pk):
+    maintenance = get_object_or_404(Maintenance, pk=pk)
+    if request.method == 'POST':
+        maintenance.delete()
+        messages.success(request, 'Maintenance entry removed.')
+    return redirect('expenses')
